@@ -1,21 +1,25 @@
-const API_URL = "http://localhost:8080";
-
-export const api = async (
-  endpoint: string,
-  method: string = "GET",
-  body?: any
-) => {
+export async function api(url: string, method = "GET", body?: any) {
 
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const headers: any = {
+    "Content-Type": "application/json"
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`http://localhost:8080${url}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` })
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
 
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+
   return response.json();
-};
+}

@@ -16,29 +16,32 @@ const Login = () => {
   const { toast } = useToast();
 
   const handleLogin = async () => {
-    try {
-      const data = await api("/auth/login", "POST", {
-        email,
-        password
-      });
+  try {
 
-      localStorage.setItem("token", data.token);
+    const data = await api("/auth/login", "POST", {
+      email,
+      senha: password
+    });
 
-      toast({
-        title: "Login realizado!",
-        description: "Redirecionando para o dashboard..."
-      });
+    localStorage.setItem("token", data.token);
 
-      navigate("/dashboard");
+    toast({
+      title: "Login realizado!",
+      description: "Redirecionando..."
+    });
 
-    } catch (error) {
-      toast({
-        title: "Erro no login",
-        description: "Email ou senha inválidos",
-        variant: "destructive"
-      });
-    }
-  };
+    navigate("/dashboard");
+
+  } catch (error) {
+
+    toast({
+      title: "Erro no login",
+      description: "Credenciais inválidas",
+      variant: "destructive"
+    });
+
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
