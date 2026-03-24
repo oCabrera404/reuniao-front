@@ -29,7 +29,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="meetings" element={<MyMeetings />} />
             <Route path="meetings/new" element={<CreateMeeting />} />
-            <Route path="meetings/:id" element={<MeetingDetails />} />
+            <Route path="/dashboard/meetings/:id" element={<MeetingDetails />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 
 const CreateMeeting = () => {
-
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -16,71 +15,76 @@ const CreateMeeting = () => {
   const [participantes, setParticipantes] = useState("");
 
   const [salas, setSalas] = useState<any[]>([]);
+  const [salasDisponiveis, setSalasDisponiveis] = useState<any[]>([]);
   const [salaId, setSalaId] = useState("");
- 
+
+  // 🔥 carregar TODAS as salas
   useEffect(() => {
-
     const carregarSalas = async () => {
-
       try {
-
-        const data = await api("/salas/disponiveis", "GET");
-
+        const data = await api("/salas/todas");
         setSalas(data);
-
       } catch (error) {
-
         console.error("Erro ao carregar salas", error);
-
       }
-
     };
 
     carregarSalas();
-
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 🔥 verificar disponibilidade quando mudar data/horário
+  useEffect(() => {
+    if (!data || !inicio || !termino) return;
 
+    const carregarDisponiveis = async () => {
+      try {
+        const res = await api(
+          `/salas/disponiveis?data=${data}&inicio=${inicio}&termino=${termino}`
+        );
+
+        setSalasDisponiveis(res);
+      } catch (error) {
+        console.error("Erro ao buscar disponibilidade", error);
+      }
+    };
+
+    carregarDisponiveis();
+  }, [data, inicio, termino]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-
       await api("/reunioes/criar", "POST", {
         titulo,
         descricao,
         data,
         inicio,
         termino,
-        salaId,
+        salaId: Number(salaId), // 🔥 importante
         participantesEmails: participantes
           .split(",")
           .map((p) => p.trim())
+          .filter((p) => p !== ""),
       });
 
       toast({
         title: "Reunião criada!",
-        description: "A reunião foi agendada com sucesso."
+        description: "A reunião foi agendada com sucesso.",
       });
 
       navigate("/dashboard/meetings");
-
     } catch (error) {
-
       toast({
         title: "Erro",
         description: "Não foi possível criar a reunião.",
-        variant: "destructive"
+        variant: "destructive",
       });
-
     }
-
   };
 
   return (
-
     <div className="max-w-3xl mx-auto p-6">
-
       <button
         onClick={() => navigate(-1)}
         className="mb-4 text-sm text-muted-foreground"
@@ -89,21 +93,13 @@ const CreateMeeting = () => {
       </button>
 
       <div className="bg-white shadow rounded-xl p-6">
-
-        <h1 className="text-2xl font-bold mb-6">
-          Nova Reunião
-        </h1>
+        <h1 className="text-2xl font-bold mb-6">Nova Reunião</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
           <div>
-            <label className="text-sm font-medium">
-              Título da reunião
-            </label>
-
+            <label className="text-sm font-medium">Título da reunião</label>
             <input
               type="text"
-              placeholder="Ex: Reunião de Sprint"
               className="w-full mt-1 border rounded-md p-2"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
@@ -112,12 +108,8 @@ const CreateMeeting = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium">
-              Descrição
-            </label>
-
+            <label className="text-sm font-medium">Descrição</label>
             <textarea
-              placeholder="Detalhes da reunião..."
               className="w-full mt-1 border rounded-md p-2"
               rows={4}
               value={descricao}
@@ -126,12 +118,8 @@ const CreateMeeting = () => {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-
             <div>
-              <label className="text-sm font-medium">
-                Data
-              </label>
-
+              <label className="text-sm font-medium">Data</label>
               <input
                 type="date"
                 className="w-full mt-1 border rounded-md p-2"
@@ -142,10 +130,7 @@ const CreateMeeting = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium">
-                Início
-              </label>
-
+              <label className="text-sm font-medium">Início</label>
               <input
                 type="time"
                 className="w-full mt-1 border rounded-md p-2"
@@ -156,10 +141,7 @@ const CreateMeeting = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium">
-                Término
-              </label>
-
+              <label className="text-sm font-medium">Término</label>
               <input
                 type="time"
                 className="w-full mt-1 border rounded-md p-2"
@@ -168,27 +150,23 @@ const CreateMeeting = () => {
                 required
               />
             </div>
-
           </div>
 
           <div>
             <label className="text-sm font-medium">
               Participantes (emails separados por vírgula)
             </label>
-
             <input
               type="text"
-              placeholder="joao@email.com, maria@email.com"
               className="w-full mt-1 border rounded-md p-2"
               value={participantes}
               onChange={(e) => setParticipantes(e.target.value)}
             />
           </div>
 
+          {/* 🔥 DROPDOWN INTELIGENTE */}
           <div>
-            <label className="text-sm font-medium">
-              Sala
-            </label>
+            <label className="text-sm font-medium">Sala</label>
 
             <select
               className="w-full mt-1 border rounded-md p-2"
@@ -196,19 +174,24 @@ const CreateMeeting = () => {
               onChange={(e) => setSalaId(e.target.value)}
               required
             >
+              <option value="">Selecione uma sala</option>
 
-              <option value="">
-                Selecione uma sala
-              </option>
+              {salas.map((sala) => {
+                const disponivel = salasDisponiveis.some(
+                  (s) => Number(s.id) === Number(sala.id)
+                );
 
-              {salas.map((sala) => (
-                <option key={sala.id} value={sala.id}>
-                  {sala.nome}
-                </option>
-              ))}
-
+                return (
+                  <option
+                    key={sala.id}
+                    value={sala.id}
+                    disabled={!disponivel}
+                  >
+                    {sala.nome} {disponivel ? "" : "(Ocupada)"}
+                  </option>
+                );
+              })}
             </select>
-
           </div>
 
           <button
@@ -217,15 +200,10 @@ const CreateMeeting = () => {
           >
             Salvar Reunião
           </button>
-
         </form>
-
       </div>
-
     </div>
-
   );
-
 };
 
 export default CreateMeeting;
