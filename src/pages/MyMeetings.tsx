@@ -12,6 +12,10 @@ const formatarData = (data: string) => {
   return `${dia}/${mes}/${ano}`;
 };
 
+function formatStatus(status) {
+  return status?.toLowerCase() ?? "agendada";
+}
+
 const statusColors: Record<string, string> = {
   confirmada: "bg-success/10 text-success border-success/20",
   cancelada: "bg-destructive/10 text-destructive border-destructive/20",
@@ -25,36 +29,40 @@ const MyMeetings = () => {
   const [meetings, setMeetings] = useState<any[]>([]);
 
   useEffect(() => {
-    const carregarReunioes = async () => {
-      try {
-        const data = await api("/reunioes/minhas");
+  const carregarReunioes = async () => {
+    try {
+      const data = await api("/reunioes/minhas");
 
-        console.log("REUNIOES BACK:", data); // 🔥 DEBUG
+      console.log("RETORNO API:", data);
 
-        const formatado = data.map((r: any) => {
-          console.log("REUNIAO:", r); // 🔥 DEBUG
+      const lista = Array.isArray(data)
+        ? data
+        : data.content ?? [];
 
-          return {
-            id: r.id, 
-            title: r.titulo,
-            date: r.data,
-            time: `${r.inicio?.slice(0, 5)} - ${r.termino?.slice(0, 5)}`, // 🔥 corrigido
-            participants: r.participantes || [],
-            status: r.status?.toLowerCase()
-          };
-        });
+      const formatado = lista.map((r: any) => ({
+        id: r.id,
+        title: r.titulo,
+        date: r.data,
+        time: `${r.inicio?.slice(0, 5)} - ${r.termino?.slice(0, 5)}`,
+        participants: r.participacoes ?? [],
+        status: formatStatus(r.status),
+      }));
 
-        setMeetings(formatado);
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as reuniões",
-        });
-      }
-    };
+      setMeetings(formatado);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as reuniões",
+      });
+    }
+  };
 
-    carregarReunioes();
-  }, []);
+  carregarReunioes();
+
+  const interval = setInterval(carregarReunioes, 60000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const handleCancel = async (id: number, title: string) => {
   try {
